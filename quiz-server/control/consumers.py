@@ -2,7 +2,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import *
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.core import serializers
 
 class ControlConsumer(AsyncWebsocketConsumer):
@@ -78,6 +78,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
             answers_list = list(answers)
             json_list_dict = []
             fields=['answerOptionId', 'isCorrect', 'AnswerOptionVotes']
+
             for a in answers_list:
                 numVotos = Vote.objects.filter(answer_option__id=a[0]).count()
                 a.append(numVotos)
@@ -91,16 +92,45 @@ class ControlConsumer(AsyncWebsocketConsumer):
                 }
             )
             
-            
-
-
 
         elif (message_type == "actualScoreBoard"):
-            user_correct_votes = User.objects.filter(vote_set__answer_option__question__game__is_active=True, vote_set__answer_option__is_correct=True).values('user').annotate(Count())
+
+            votes_actual_game = Count('vote', filter=Q(vote__answer_option__question__game__is_active=True, vote_set__answer_option__is_correct=True))
+            user_correct_votes = User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes")
+            values = list(user_correct_votes)
+            json_list_dict = []
+            fields = ['showName', 'points']
+
+            for a in values:
+                json_list_dict.append(dict(zip(fields, a)))
+            
+            await self.channel_layer.group_send(
+                self.player_group,
+                {
+                    'type' : "actualScoreBoard",
+                    'players' : json_list_dict
+                }
+            )
 
         
         elif (message_type == "generalScoreBoard"):
-            user_correct_votes = User.objects.filter(vote_set__answer_option__question__game__is_active=True, vote_set__answer_option__is_correct=True).values('user').annotate(Count())
+
+            votes_actual_game = Count('vote', filter=Q(vote_set__answer_option__is_correct=True))
+            user_correct_votes = User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes")
+            values = list(user_correct_votes)
+            json_list_dict = []
+            fields = ['showName', 'points']
+            
+            for a in values:
+                json_list_dict.append(dict(zip(fields, a)))
+            
+            await self.channel_layer.group_send(
+                self.player_group,
+                {
+                    'type' : "actualScoreBoard",
+                    'players' : json_list_dict
+                }
+            )
             
         
         elif (message_type == "endRequest"):
