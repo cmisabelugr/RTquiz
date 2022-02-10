@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import *
 from django.db.models import Count, Q
 from django.core import serializers
+from channels.db import database_sync_to_async
 
 class ControlConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -48,7 +49,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
             
             question_id = message_data_json['questionId']
             answers_json = serializers.serialize("json",Answer_option.objects.filter(question__id=question_id), fields=("id", "answer_option_text"))
-            question_text = Question.objects.filter(id=question_id)
+            question_text = await database_sync_to_async(Question.objects.filter(id=question_id).first())
 
             await self.channel_layer.group_send(
                 self.player_group,
@@ -73,14 +74,14 @@ class ControlConsumer(AsyncWebsocketConsumer):
         elif (message_type == "showQuestionResult"):
             
             question_id = message_data_json['questionId']
-            answers = Answer_option.objects.filter(question__id=question_id).values("id", "is_correct")
-            question_text = Question.objects.filter(id=question_id) 
+            answers = await database_sync_to_async(Answer_option.objects.filter(question__id=question_id).values("id", "is_correct"))
+            question_text = await database_sync_to_async(Question.objects.filter(id=question_id).first())
             answers_list = list(answers)
             json_list_dict = []
             fields=['answerOptionId', 'isCorrect', 'AnswerOptionVotes']
 
             for a in answers_list:
-                numVotos = Vote.objects.filter(answer_option__id=a[0]).count()
+                numVotos = await database_sync_to_async(Vote.objects.filter(answer_option__id=a[0]).count())
                 a.append(numVotos)
                 json_list_dict.append(dict(zip(fields,a)))
 
@@ -96,7 +97,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
         elif (message_type == "actualScoreBoard"):
 
             votes_actual_game = Count('vote', filter=Q(vote__answer_option__question__game__is_active=True, vote_set__answer_option__is_correct=True))
-            user_correct_votes = User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes")
+            user_correct_votes = await database_sync_to_async(User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes"))
             values = list(user_correct_votes)
             json_list_dict = []
             fields = ['showName', 'points']
@@ -116,7 +117,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
         elif (message_type == "generalScoreBoard"):
 
             votes_actual_game = Count('vote', filter=Q(vote_set__answer_option__is_correct=True))
-            user_correct_votes = User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes")
+            user_correct_votes = await database_sync_to_async(User.objects.annotate(votes=votes_actual_game).order_by("-votes").values("name", "votes"))
             values = list(user_correct_votes)
             json_list_dict = []
             fields = ['showName', 'points']
@@ -127,7 +128,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.player_group,
                 {
-                    'type' : "actualScoreBoard",
+                    'type' : "generalScoreBoard",
                     'players' : json_list_dict
                 }
             )
@@ -161,4 +162,16 @@ class ControlConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': "newVote",
             'answerOptionId' : answer_option_id
+        }))
+
+    async def newPlayerJoined(self, event):
+
+        await self.send(text_data=json.dumps({
+            'type': "newPlayerJoined"
+        }))
+    
+    async def playerLeft(self, event):
+        
+        await self.send(text_data=json.dumps({
+            'type': "playerLeft"
         }))
