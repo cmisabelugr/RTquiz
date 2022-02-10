@@ -6,7 +6,7 @@ from control.models import Answer_option
 from control.models import *
 from channels.db import database_sync_to_async
 
-class ControlConsumer(AsyncWebsocketConsumer):
+class PlayerConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
         if self.user.id == None:

@@ -199,7 +199,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
     
     async def requestSyncInfo(self, event):
         
-        if event['requestedFrom'] != self.channel_name:
+        if event['requestFrom'] != self.channel_name:
             await self.send(text_data=json.dumps({
                 'type' : "requestedInfo",
                 'from' : event['requestFrom']

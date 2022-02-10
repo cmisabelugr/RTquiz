@@ -73,6 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'RTQuizServer.wsgi.application'
 ASGI_APPLICATION = 'RTQuizServer.asgi.application'
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
