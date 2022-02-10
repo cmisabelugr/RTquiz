@@ -25,13 +25,13 @@ class Game(models.Model):
     finished_time = models.DateTimeField(_("Fecha de finalización"), auto_now=False, auto_now_add=False, blank=True)
     is_active = models.BooleanField(_("Juego activo"), default=False)
 
-    def save(self) -> None:
+    def save(self, *args, **kwargs) -> None:
         if(self.is_active):
             active_games = Game.objects.filter(is_active=True).all()
             for game in active_games:
                 game.is_active = False
                 game.save()
-        return super().save()
+        return super().save(*args, **kwargs)
     
 
     class Meta:
@@ -67,12 +67,12 @@ class Answer_option(models.Model):
     answer_option_text = models.TextField(_("Texto de la respuesta"))
     is_correct = models.BooleanField(_("Correcta"), blank=False)
 
-    def save(self) -> None:
+    def save(self, *args, **kwargs) -> None:
         if (self.is_correct):
             count_correct = Answer_option.objects.filter(question = self.question, is_correct=True).count()
             if (count_correct != 0):
                 raise MultipleCorrectAnswers
-        return super().save()
+        return super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("answer_option")
@@ -90,12 +90,12 @@ class Vote(models.Model):
     answer_option = models.ForeignKey("Answer_option", verbose_name=_("Answer_option"), on_delete=models.CASCADE)
     vote_time = models.DateTimeField(_("Fecha de voto"), auto_now=False, auto_now_add=True)
 
-    def save(self) -> None:
+    def save(self, *args, **kwargs) -> None:
         if(Vote.objects.filter(answer_option__question=self.answer_option.question, user = self.user).count() != 0):
             raise MultipleVotes
         if (Vote.objects.filter(answer_option__is_correct=False, user=self.user, answer_option__question__game=self.answer_option.question.game).count() != 0):
             raise DeadPlayer
-        return super().save()
+        return super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("vote")
