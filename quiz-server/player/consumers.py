@@ -66,7 +66,7 @@ class ControlConsumer(AsyncWebsocketConsumer):
                     }
                 )
             except (MultipleVotes, DeadPlayer) as e:
-                pass
+                print("User %s raised exception %s" % self.user, e)
 
 
 

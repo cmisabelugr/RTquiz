@@ -18,6 +18,14 @@ class ControlConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        await self.channel_layer.group_send(
+            self.name_group,
+            {
+                'type' : "requestSyncInfo",
+                'requestFrom' : self.channel_name
+            }
+        )
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.name_group,
@@ -151,11 +159,24 @@ class ControlConsumer(AsyncWebsocketConsumer):
                     'type' : "start"
                 }
             )
+        
+        elif (message_type == "syncInfo"):
+            
+            await self.channel_layer.group_send(
+                self.name_group,
+                {
+                    'type' : "syncInfo",
+                    'to' : message_data_json['to'],
+                    'liveViewers' : message_data_json['liveViewers'],
+                    'alivePlayers' : message_data_json['alivePlayers'],
+                    'totalPlayers' : message_data_json['totalPlayers']
+                }
+            )
 
 
 
         
-    async def vote(self, event):
+    async def newVote(self, event):
         answer_option_id = event['answerOptionId']
 
         # Send message to WebSocket
@@ -175,3 +196,22 @@ class ControlConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': "playerLeft"
         }))
+    
+    async def requestSyncInfo(self, event):
+        
+        if event['requestedFrom'] != self.channel_name:
+            await self.send(text_data=json.dumps({
+                'type' : "requestedInfo",
+                'from' : event['requestFrom']
+            }))
+        
+    
+    async def syncInfo(self, event):
+        
+        if event['to'] == self.channel_name:
+            await self.send(text_data=json.dumps({
+                'type' : "requestedInfo",
+                'liveViewers' : event['liveViewers'],
+                'alivePlayers' : event['alivePlayers'],
+                'totalPlayers' : event['totalPlayers']
+            }))

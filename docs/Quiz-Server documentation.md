@@ -217,4 +217,28 @@ Created per player when they click on an Answer_option. user and answer_option_q
     'type': "endGame"
 }
 ```
-
+```json
+// Name: requestSyncInfoMessage
+// Description: Requests players stats from other controls
+// Sent by: Control
+// Received by: Control
+// Fields
+{
+    'type': "requestSyncInfo",
+    'requestFrom': channel_name
+}
+```
+```json
+// Name: syncInfoMessage
+// Description:
+// Sent by: Server
+// Received by: Players
+// Fields
+{
+    'type' : "syncInfo",
+    'to' : channel_name,
+    'liveViewers' : current_viewers,
+    'alivePlayers' : alive_players,
+	'totalPlayers' : total
+}
+```
