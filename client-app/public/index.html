@@ -25,6 +25,28 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>React App</title>
+    <style>
+    body {
+      background-color: #282c34;
+    }
+
+    #root{
+      background-color: white;
+      border-radius: 1em;
+      height: 100%;
+      padding: 1em;
+    }
+
+    @media (orientation: landscape) {
+      #root {
+        aspect-ratio: 9/16;
+        max-height : 100vh;
+        min-height : 720px;
+        margin-right: auto;
+        margin-left: auto;
+      }
+    }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
